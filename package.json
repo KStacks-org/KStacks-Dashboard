@@ -1,0 +1,30 @@
+{
+  "name": "kstacks-dashboard",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.30.3",
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,green \"pnpm --filter backend dev\" \"pnpm --filter frontend dev\"",
+    "build": "pnpm --filter backend build && pnpm --filter frontend build",
+    "start": "pnpm --filter backend start",
+    "test": "pnpm --filter backend test && pnpm --filter frontend test",
+    "test:e2e": "pnpm --filter frontend test:e2e",
+    "lint": "pnpm --filter backend lint && pnpm --filter frontend lint",
+    "typecheck": "pnpm --filter backend typecheck && pnpm --filter frontend typecheck",
+    "db:migrate": "pnpm --filter backend db:migrate",
+    "db:migrate:deploy": "pnpm --filter backend db:migrate:deploy",
+    "db:seed": "pnpm --filter backend db:seed"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "argon2",
+      "esbuild",
+      "prisma"
+    ]
+  }
+}

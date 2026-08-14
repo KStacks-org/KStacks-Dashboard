@@ -1,0 +1,32 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma
+backend/prisma/dev.db
+
+# Testing
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# Paraglide generated output
+frontend/src/paraglide/
