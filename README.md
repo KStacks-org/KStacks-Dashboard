@@ -116,6 +116,8 @@ Because the unauthenticated GitHub limit is 60 requests an hour and a refresh co
 
 A page per KStack service showing what it is, who owns it, its repository, its open tasks, and its recent health. The **overview** is a free-text writeup the team authors themselves — an internal explainer so anyone can pick the service up. The public catalogue fields (name, tagline, description, status, URL) mirror kstacks.org and are refreshed by the sync script, which never touches the team-authored fields.
 
+Each service carries its real brand mark from kstacks.org, shown wherever the service appears — the catalogue, its own page, the health board, and the badges on tasks and issues. The marks are bundled with the frontend and keyed by `codename`, so they are versioned with the code and load without a network round-trip. A service added later with no mark of its own falls back to a generic icon rather than a broken image; giving it a real one means committing the SVG.
+
 ### Health
 
 Background probes of every service that has a health-check URL, recorded with status code and response time. The board shows current state, uptime ratio, a history strip, and an on-demand "Check now". Probes run on an interval inside the API process (six services every few minutes does not justify a separate worker); overlapping runs are skipped and history older than 14 days is pruned.
