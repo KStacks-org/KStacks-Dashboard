@@ -160,7 +160,7 @@ cp frontend/.env.example frontend/.env    # optional; only for split-origin depl
 | Variable | Required | Purpose |
 |---|---|---|
 | `DATABASE_URL` | yes | PostgreSQL connection string. URL-encode special characters in the password (`@` → `%40`). |
-| `PORT` | no (4000) | Port the API listens on. |
+| `PORT` | no (4100) | Port the API listens on. |
 | `NODE_ENV` | no (development) | `production` on the server. Controls secure cookies, logging, and error detail. |
 | `APP_URL` | yes | Public URL of the API. |
 | `FRONTEND_URL` | yes | Public URL of the frontend — used for the CORS allow-list. |
@@ -192,7 +192,7 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 
 ### `frontend/.env`
 
-`VITE_API_BASE_URL` — leave **empty** unless the frontend and API are served from different origins. In development Vite proxies `/api` to `localhost:4000`; in production, reverse-proxying `/api` to the backend behind one domain is recommended (and is what makes `SameSite=Lax` session cookies work).
+`VITE_API_BASE_URL` — leave **empty** unless the frontend and API are served from different origins. In development Vite proxies `/api` to `localhost:4100`; in production, reverse-proxying `/api` to the backend behind one domain is recommended (and is what makes `SameSite=Lax` session cookies work).
 
 ---
 
@@ -283,7 +283,7 @@ Changing the password requires the current password, a new password, and a confi
 pnpm dev
 ```
 
-Starts the API on `http://localhost:4000` and the frontend on `http://localhost:5173` in one command. Vite proxies `/api` to the backend, so there is nothing else to configure.
+Starts the API on `http://localhost:4100` and the frontend on `http://localhost:5173` in one command. Vite proxies `/api` to the backend, so there is nothing else to configure.
 
 Individually, if needed:
 
