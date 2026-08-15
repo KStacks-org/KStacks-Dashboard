@@ -73,7 +73,8 @@ Chosen to match the conventions already used in the KStacks organisation (`githu
 - **Quick add** — type a title, press Enter. It is assigned to you; open it later for the detail.
 - **Workflow status** — `To do` / `In progress` / `Blocked`. Finishing a task **archives** it rather than adding a permanently-empty "Done" column.
 - **Task references** — every task gets a short handle like `KS-42` to quote in chat instead of a long title.
-- **Subtasks** — expandable inline under the parent card, drag-to-reorder, and each can be **owned by one person**, who must already be an assignee of the parent task. Removing someone from a task while they still own subtasks is refused, and the error names who to reassign first.
+- **Read without switching modes** — the card chevron opens a read-only panel showing the subtasks, links and the latest comments in place. Adding to any of them stays in the detail dialog, so viewing and authoring are separate.
+- **Subtasks** — drag-to-reorder, and each can be **owned by one person**, who must already be an assignee of the parent task. Removing someone from a task while they still own subtasks is refused, and the error names who to reassign first.
 - **Comments** — an async thread per task. Anyone can comment; only the author can edit or delete their own.
 - **Links** — attach a PR, doc, or design. Only `http`/`https` are accepted, so a `javascript:` URL can never be stored and later clicked.
 
