@@ -131,6 +131,8 @@ cp frontend/.env.example frontend/.env    # optional; only for split-origin depl
 | `LOGIN_RATE_LIMIT_WINDOW_MINUTES` | no (15) | Rate-limit window length. |
 | `HEALTH_CHECK_ENABLED` | no (true) | Set `false` to stop the background service probes. |
 | `HEALTH_CHECK_INTERVAL_MINUTES` | no (5) | Minutes between probe runs. |
+| `SESSION_COOKIE_DOMAIN` | no (host-only) | Set to `.kstacks.org` to share the session across KStack subdomains. Must stay empty in development — a browser rejects such a cookie from `localhost`. |
+| `ALLOWED_EMAIL_DOMAINS` | no (`stu.kau.edu.sa`) | Comma-separated email domains permitted to sign in. |
 
 Generate a session secret:
 
@@ -185,18 +187,29 @@ It also fills in a default health-check URL for each live service, but only wher
 
 ### Initial accounts
 
-| Display name | Username |
-|---|---|
-| طارق | `tariq` |
-| ياسر العوفي | `yasser.alawfi` |
-| فواز عبد الله | `fawaz.abdullah` |
-| محمد خياط | `mohammed.khayyat` |
-| أمجد القاسمي | `amjad.alqasimi` |
-| عبد العزيز | `abdulaziz` |
-| ياسر | `yasser` |
-| عبدالله السيروان | `abdullah.sayrawan` |
+People sign in with their **university email**. The roster in `backend/prisma/seed.ts` *is* the allowlist — there is no public sign-up, so an address that is not on it cannot get in.
 
-The two people whose names involve "ياسر" get distinct usernames (`yasser.alawfi` and `yasser`) and separate database ids; display name is never used as a key.
+| Display name | Email |
+|---|---|
+| طارق | *pending* |
+| ياسر العوفي | *pending* |
+| فواز عبد الله | *pending* |
+| محمد خياط | *pending* |
+| أمجد القاسمي | *pending* |
+| عبد العزيز | *pending* |
+| ياسر | *pending* |
+| عبدالله السيروان | `aalserawan@stu.kau.edu.sa` |
+
+**Accounts marked *pending* cannot sign in yet.** They are seeded with an address on `pending.invalid` — a reserved TLD (RFC 2606) that can never be a real mailbox — so a placeholder can never accidentally admit an unrelated KAU student. Those accounts still work as task assignees.
+
+### Authorising someone
+
+1. Put their real address in the `USERS` roster in `backend/prisma/seed.ts`.
+2. Run `pnpm db:seed`.
+
+Rows are matched on the internal `username` key, so correcting an email updates the existing person rather than creating a second account, and their tasks and assignments are preserved. The seed prints who is still pending on every run.
+
+The two people whose names involve "ياسر" have separate database ids and distinct emails; display name is never used as a key.
 
 ### Temporary password
 
@@ -312,6 +325,8 @@ If the markup changes shape, the script tells you so and points at the selectors
 
 - **Passwords**: Argon2id (memory-hard, not reversible). Never stored or logged in plaintext; hashes are stripped from every API response.
 - **Sessions**: server-side, stored in PostgreSQL. The cookie is `HttpOnly`, `SameSite=Lax`, `Secure` in production, and expires after 7 days. No token is ever placed in `localStorage`.
+- **Cookie scope**: controlled by `SESSION_COOKIE_DOMAIN`. Left empty the cookie is host-only (the dashboard alone). Set to `.kstacks.org` it is shared across KStack subdomains — convenient, but it also means the session cookie is sent to *every* host under `kstacks.org`, so each of them has to stay trusted. Pick deliberately.
+- **Who can sign in**: three distinct outcomes, so nobody wastes time on the wrong problem — an address off the allowed domain is rejected by validation, an allowed-domain address nobody on the roster owns returns `EMAIL_NOT_ALLOWED`, and a rostered address with a bad password returns the usual generic failure.
 - **Session fixation**: the session id is regenerated on login.
 - **CSRF**: double-submit token required on every state-changing request.
 - **Rate limiting**: strict on login (10 per 15 min per IP), plus a general API limit.
