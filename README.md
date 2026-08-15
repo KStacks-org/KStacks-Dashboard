@@ -114,9 +114,11 @@ Because the unauthenticated GitHub limit is 60 requests an hour and a refresh co
 
 ### Services
 
-A page per KStack service showing what it is, who owns it, its repository, its open tasks, and its recent health. The **overview** is a free-text writeup the team authors themselves — an internal explainer so anyone can pick the service up. The public catalogue fields (name, tagline, description, status, URL) mirror kstacks.org and are refreshed by the sync script, which never touches the team-authored fields.
+A page per KStack service showing what it is, who owns it, its repository, its open tasks, and its recent health. The **overview** is a free-text writeup the team authors themselves — an internal explainer so anyone can pick the service up. The public catalogue fields (name, tagline, description, status, URL, logo) mirror kstacks.org. **The API refreshes them on a timer** (`SERVICE_SYNC_INTERVAL_HOURS`, daily by default, plus once at startup), so a service launched on the site appears here on its own. `pnpm --filter backend db:sync-services` runs the same code on demand, with `--dry-run` to preview.
 
-Each service carries its real brand mark from kstacks.org, shown wherever the service appears — the catalogue, its own page, the health board, and the badges on tasks and issues. The marks are bundled with the frontend and keyed by `codename`, so they are versioned with the code and load without a network round-trip. A service added later with no mark of its own falls back to a generic icon rather than a broken image; giving it a real one means committing the SVG.
+A sync only ever writes the public fields — the team-authored ones (overview, repository, health URL, owner) are not in the update statement, so it cannot overwrite what someone wrote here. A service that disappears upstream is kept rather than deleted, since tasks still reference it. If the page is unreachable or its markup changes shape, the sync writes nothing and logs; the existing rows stand.
+
+Each service carries its real brand mark from kstacks.org, shown wherever the service appears — the catalogue, its own page, the health board, the badges on tasks and issues, and the service pickers. A mark is resolved in three steps: the copy bundled with the frontend for that `codename` (inlined by the build, so no request and nothing to break), then `logoUrl` captured by the catalogue sync, then a generic icon. That means a service added upstream shows its real logo straight away, and committing a bundled copy later is an optimisation rather than a prerequisite.
 
 ### Health
 
@@ -169,6 +171,9 @@ cp frontend/.env.example frontend/.env    # optional; only for split-origin depl
 | `HEALTH_CHECK_INTERVAL_MINUTES` | no (5) | Minutes between probe runs. |
 | `SESSION_COOKIE_DOMAIN` | no (host-only) | Set to `.kstacks.org` to share the session across KStack subdomains. Must stay empty in development — a browser rejects such a cookie from `localhost`. |
 | `ALLOWED_EMAIL_DOMAINS` | no (`stu.kau.edu.sa`) | Comma-separated email domains permitted to sign in. |
+| `SERVICE_SYNC_ENABLED` | no (`true`) | Whether the API refreshes the service catalogue on a timer. |
+| `SERVICE_SYNC_INTERVAL_HOURS` | no (24) | How often that refresh runs. |
+| `SERVICE_CATALOG_URL` | no (`https://kstacks.org/`) | Page the catalogue is read from. |
 | `GITHUB_ORG` | no (`KStacks-org`) | Organisation the activity feed reads. |
 | `GITHUB_TOKEN` | no | Read-only token. Without it GitHub allows 60 requests/hour, which one refresh nearly exhausts; with it, 5000. |
 | `GITHUB_CACHE_MINUTES` | no (20) | How long org activity is held before refetching. |
