@@ -171,6 +171,10 @@ cp frontend/.env.example frontend/.env    # optional; only for split-origin depl
 | `HEALTH_CHECK_INTERVAL_MINUTES` | no (5) | Minutes between probe runs. |
 | `SESSION_COOKIE_DOMAIN` | no (host-only) | Set to `.kstacks.org` to share the session across KStack subdomains. Must stay empty in development — a browser rejects such a cookie from `localhost`. |
 | `ALLOWED_EMAIL_DOMAINS` | no (`stu.kau.edu.sa`) | Comma-separated email domains permitted to sign in. |
+| `JWT_PRIVATE_KEY` | **in production** | RSA private key (PKCS8 PEM or base64) signing service tokens. A throwaway key is generated in development. |
+| `JWT_ISSUER` | no (`https://kstacks.org`) | `iss` claim consumers should check. |
+| `JWT_AUDIENCE` | no (`kstacks-services`) | `aud` claim consumers should check. |
+| `JWT_TTL_MINUTES` | no (15) | Token lifetime. Short so revoking a scope takes effect quickly. |
 | `SERVICE_SYNC_ENABLED` | no (`true`) | Whether the API refreshes the service catalogue on a timer. |
 | `SERVICE_SYNC_INTERVAL_HOURS` | no (24) | How often that refresh runs. |
 | `SERVICE_CATALOG_URL` | no (`https://kstacks.org/`) | Page the catalogue is read from. |
@@ -383,17 +387,36 @@ If the markup changes shape, the script tells you so and points at the selectors
 
 ### Permissions model
 
-Everyone has equal permissions on the work itself. The single exception is roster management, which is admin-only.
+Admin is **scoped**, not a single flag. A scope is either `dashboard` — this app — or a service codename such as `kdevs`. The list of grantable scopes is built from the live catalogue, so a service added by the sync becomes grantable with no code change.
+
+| | What it means |
+|---|---|
+| **Super admin** | Holds every scope implicitly, and is the **only** role that can grant or revoke anyone else's. |
+| **`dashboard` scope** | Full authority inside this app: every rule below that a plain member is held to, a dashboard admin is exempt from. |
+| **A service scope** | Mostly *not* about this app. It is minted into the shared token so the service itself can recognise its admins. Inside the dashboard it buys exactly one thing: authority over the tasks and issues attached to that service. |
+| **Member** | Everything else. Equal permissions on the work itself. |
+
+Granting is deliberately narrower than using: a dashboard admin has full power over the work but still **cannot** change who holds what. Authority has one source.
 
 - Anyone can create tasks and subtasks, and edit any task.
 - Everyone sees every task.
-- **Only the person who created a task can delete it**, and deletion always requires confirmation. This is enforced on the server, not just hidden in the UI.
-- **Only the author of a comment can edit or delete it** — likewise enforced server-side.
+- **A task can be deleted by the person who created it**, by a dashboard admin, or by an admin of the service it is attached to. Deletion always requires confirmation, and the rule is enforced on the server, not just hidden in the UI.
+- **The same rule governs issues**, with the reporter in place of the creator.
+- **Only the author of a comment can edit or delete it** — enforced server-side.
 - A subtask can only be owned by someone already assigned to its parent task.
-- **Only the person who reported an issue can delete it.**
-- **Only an admin can add, edit or deactivate a team member.** The last admin is protected from demotion or deactivation, and nobody can deactivate their own account.
+- **Roster management requires the `dashboard` scope.** The last super admin is protected from demotion or deactivation, and nobody can deactivate their own account.
 - A notification can only be read or dismissed by its recipient.
 - Finishing a task **archives** it. Archived tasks move to the Archive page and are never removed automatically; they can be restored at any time.
+
+### Service tokens
+
+The dashboard is the place roles are decided for the whole estate, so it hands the other KStack services a signed statement of who someone is and what they administer.
+
+`GET /api/auth/token` returns a short-lived JWT for the caller's own session — there is no way to request one on someone else's behalf, and it is refused while a temporary password is still in place, so an unclaimed account cannot hand out authority. Claims: `sub`, `email`, `name`, `super_admin`, `scopes`, plus `iss`/`aud`/`exp`/`jti`.
+
+It is signed **RS256, not with a shared secret**. The dashboard alone holds the private key and publishes only the public half at `/.well-known/jwks.json`, so a service can verify a token but cannot forge one. A shared secret would have to be handed to every service, and any of them could then mint an admin token for anyone.
+
+`super_admin` is a wildcard emitted *alongside* `scopes` rather than by expanding it into every scope name, because the set of services changes. A consumer that reads only `scopes` therefore under-grants a super admin, which fails closed rather than open.
 
 ---
 
