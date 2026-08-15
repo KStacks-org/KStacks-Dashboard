@@ -90,7 +90,7 @@ A defect is a different thing from a task: an issue is *something that is broken
 
 ### Milestones
 
-Dated goals that tasks roll up into — "Portal MVP", "Authentication Complete". Progress is derived from the tasks pointing at the milestone (archived = done), so it can never drift from reality. An empty milestone shows no percentage rather than a discouraging 0%. Deleting a milestone keeps its tasks; they simply become unattached.
+Dated goals that tasks roll up into — "Portal MVP", "Authentication Complete". A task is attached to a milestone from the task form itself, and the task list can be filtered down to one milestone. Progress is derived from the tasks pointing at the milestone (archived = done), so it can never drift from reality. An empty milestone shows no percentage rather than a discouraging 0%. Deleting a milestone keeps its tasks; they simply become unattached.
 
 ### Team
 
