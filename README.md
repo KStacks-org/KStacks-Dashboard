@@ -1,6 +1,6 @@
 # KStacks Dashboard
 
-Internal task-management dashboard for the KStacks team — a private tool for tracking work across the KStack service ecosystem (kindex, kplanner, kgroups, KGPA, kdevs, ksubjects).
+Internal dashboard for the KStacks team: task management, a service catalogue the team documents itself, live health monitoring for everything we run, and a register of the student projects we sponsor.
 
 Built to the KStack visual identity: Alexandria typeface, the emerald `#15BB81` brand green, the layered-diamond mark, dark-only theme, and full Arabic/English + RTL/LTR support.
 
@@ -31,7 +31,9 @@ dashboard/
         │   ├── ui/      shadcn/ui primitives (new-york style)
         │   ├── brand/   KStack logo + "Stacking..." loader
         │   ├── layout/  Header, language toggle
-        │   ├── tasks/   Task cards, form, calendar, subtasks
+        │   ├── tasks/   Cards, board, calendar, subtasks, comments, links
+        │   ├── services/ Service status + health badges
+        │   ├── projects/ Sponsored-project form
         │   └── shared/  Empty + error states
         ├── hooks/       Auth and task mutations
         ├── lib/         API client, queries, types, formatting, i18n
@@ -49,6 +51,7 @@ Chosen to match the conventions already used in the KStacks organisation (`githu
 | Frontend | React 19, Vite 7, TypeScript, Tailwind CSS v4 |
 | Routing / data | TanStack Router (file-based), TanStack Query |
 | Components | shadcn/ui (`new-york`, base colour `zinc`, `lucide-react` icons) |
+| Drag & drop | dnd-kit (subtask reordering, board columns) — keyboard accessible |
 | i18n | Paraglide JS (`@inlang/paraglide-js`) |
 | Backend | Node.js, Express, TypeScript |
 | Database | PostgreSQL via Prisma (migrations + typed client) |
@@ -60,6 +63,31 @@ Chosen to match the conventions already used in the KStacks organisation (`githu
 | Package manager | pnpm workspaces |
 
 ---
+
+## What's in it
+
+### Tasks
+
+- **Three views over one dataset** — list, kanban board, and month calendar. Switching never refetches.
+- **Search and filters** — free text (title, description, `KS-42`, service, assignee), plus service / priority / status / person, "overdue only" and **"My tasks"**. Filtering happens client-side over the already-loaded list, so it is instant.
+- **Quick add** — type a title, press Enter. It is assigned to you; open it later for the detail.
+- **Workflow status** — `To do` / `In progress` / `Blocked`. Finishing a task **archives** it rather than adding a permanently-empty "Done" column.
+- **Task references** — every task gets a short handle like `KS-42` to quote in chat instead of a long title.
+- **Subtasks** — expandable inline under the parent card, drag-to-reorder, and each can be **owned by one person**, who must already be an assignee of the parent task. Removing someone from a task while they still own subtasks is refused, and the error names who to reassign first.
+- **Comments** — an async thread per task. Anyone can comment; only the author can edit or delete their own.
+- **Links** — attach a PR, doc, or design. Only `http`/`https` are accepted, so a `javascript:` URL can never be stored and later clicked.
+
+### Services
+
+A page per KStack service showing what it is, who owns it, its repository, its open tasks, and its recent health. The **overview** is a free-text writeup the team authors themselves — an internal explainer so anyone can pick the service up. The public catalogue fields (name, tagline, description, status, URL) mirror kstacks.org and are refreshed by the sync script, which never touches the team-authored fields.
+
+### Health
+
+Background probes of every service that has a health-check URL, recorded with status code and response time. The board shows current state, uptime ratio, a history strip, and an on-demand "Check now". Probes run on an interval inside the API process (six services every few minutes does not justify a separate worker); overlapping runs are skipped and history older than 14 days is pruned.
+
+### Sponsored projects
+
+The internal counterpart to the public "Powered by KStack" section: which student projects we support, who runs them, what infrastructure we gave them, and where each one is in the pipeline (`Proposed → In review → Active → Launched → Archived`).
 
 ## Requirements
 
@@ -100,6 +128,8 @@ cp frontend/.env.example frontend/.env    # optional; only for split-origin depl
 | `SESSION_SECRET` | yes | ≥32-character random string signing session cookies. |
 | `LOGIN_RATE_LIMIT_MAX` | no (10) | Login attempts per IP per window. Leave at the default in production. |
 | `LOGIN_RATE_LIMIT_WINDOW_MINUTES` | no (15) | Rate-limit window length. |
+| `HEALTH_CHECK_ENABLED` | no (true) | Set `false` to stop the background service probes. |
+| `HEALTH_CHECK_INTERVAL_MINUTES` | no (5) | Minutes between probe runs. |
 
 Generate a session secret:
 
@@ -149,6 +179,8 @@ pnpm db:seed
 ```
 
 Creates the eight team accounts and the six KStack services. The seed is **idempotent** — it upserts by `username` / `codename`, so running it repeatedly never creates duplicates and never resets a password that a user has already changed.
+
+It also fills in a default health-check URL for each live service, but only where one has never been set, so a URL the team chose is never overwritten. Service overviews, owners and repository links are always left alone.
 
 ### Initial accounts
 
@@ -296,6 +328,8 @@ Everyone on the team has equal permissions by design — there are no roles.
 - Anyone can create tasks and subtasks, and edit any task.
 - Everyone sees every task.
 - **Only the person who created a task can delete it**, and deletion always requires confirmation. This is enforced on the server, not just hidden in the UI.
+- **Only the author of a comment can edit or delete it** — likewise enforced server-side.
+- A subtask can only be owned by someone already assigned to its parent task.
 - Finishing a task **archives** it. Archived tasks move to the Archive page and are never removed automatically; they can be restored at any time.
 
 ---
@@ -317,4 +351,6 @@ Translations live in `frontend/messages/en.json` and `ar.json`. Adding a key to 
 
 - The theme is **dark only** in this version; the design tokens are structured so a light theme can be added later without touching components.
 - Subtasks are one level deep by design.
+- The board has no "Done" column: finishing a task archives it, so a Done column would always render empty.
+- Health probes issue a plain `GET` and treat any non-2xx/3xx response or timeout as down. They do not follow up with a body check, so a service returning `200` while broken internally would still read as up.
 - There is no self-service password reset. To reset an account, have an admin update its hash directly, or delete the row and re-run `pnpm db:seed` to recreate it with the temporary password.

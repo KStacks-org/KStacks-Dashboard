@@ -30,3 +30,6 @@ blob-report/
 
 # Paraglide generated output
 frontend/src/paraglide/
+
+# TypeScript incremental build info
+*.tsbuildinfo
