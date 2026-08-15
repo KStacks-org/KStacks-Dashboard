@@ -1,6 +1,6 @@
 # KStacks Dashboard
 
-Internal dashboard for the KStacks team: task management, a service catalogue the team documents itself, live health monitoring for everything we run, and a register of the student projects we sponsor.
+Internal dashboard for the KStacks team: an at-a-glance overview, task and issue tracking, milestones, the team roster with live workload, a service catalogue the team documents itself, health monitoring for everything we run, real-time notifications, and a live feed of the organisation's GitHub activity.
 
 Built to the KStack visual identity: Alexandria typeface, the emerald `#15BB81` brand green, the layered-diamond mark, dark-only theme, and full Arabic/English + RTL/LTR support.
 
@@ -66,6 +66,10 @@ Chosen to match the conventions already used in the KStacks organisation (`githu
 
 ## What's in it
 
+### Overview
+
+The home page: active tasks, what was completed this week, open issues, and how many monitored services are responding — plus your own assigned work and milestone progress. Every count is aggregated in the database rather than by loading rows.
+
 ### Tasks
 
 - **Three views over one dataset** — list, kanban board, and month calendar. Switching never refetches.
@@ -77,6 +81,36 @@ Chosen to match the conventions already used in the KStacks organisation (`githu
 - **Subtasks** — drag-to-reorder, and each can be **owned by one person**, who must already be an assignee of the parent task. Removing someone from a task while they still own subtasks is refused, and the error names who to reassign first.
 - **Comments** — an async thread per task. Anyone can comment; only the author can edit or delete their own.
 - **Links** — attach a PR, doc, or design. Only `http`/`https` are accepted, so a `javascript:` URL can never be stored and later clicked.
+
+### Issues
+
+A defect is a different thing from a task: an issue is *something that is broken*, a task is *work to be done*. Issues carry their own `IS-` reference, a service, a priority and an assignee, and move through `Open → In progress → Resolved → Closed`.
+
+**Convert to Task** promotes a report into work: it creates a task carrying the title, description, priority and service across, assigns it, and links the two. The issue is kept rather than replaced, so the original report and its history survive, and converting twice is refused.
+
+### Milestones
+
+Dated goals that tasks roll up into — "Portal MVP", "Authentication Complete". Progress is derived from the tasks pointing at the milestone (archived = done), so it can never drift from reality. An empty milestone shows no percentage rather than a discouraging 0%. Deleting a milestone keeps its tasks; they simply become unattached.
+
+### Team
+
+The roster: who each person is, their job title, what they are responsible for, and their live workload — active vs. completed tasks, a breakdown across to-do/in-progress/blocked, and open issues assigned to them.
+
+**An admin manages the roster from the UI** rather than through the database. Adding someone creates their account on the temporary password with a forced change on first login. Deactivating someone is a soft switch: they keep their authored history and stay visible on past work, but can no longer sign in — enforced on their very next request, not just at the next login — and they stop being offered for new assignments. The last remaining admin cannot be demoted or deactivated, and nobody can deactivate themselves.
+
+Everything outside roster management stays equal-permission between all members.
+
+### Notifications
+
+Real-time, over server-sent events: an open tab updates without polling. Every notification is persisted first, so someone who was offline still sees it on their next visit — the stream only makes an open tab live.
+
+Raised when you are assigned a task, given a subtask, assigned an issue, or **@mentioned in a comment** (matched against your email handle or any part of your display name). You are never notified about your own action.
+
+### GitHub Activity
+
+A live feed from the organisation: recent commits, open pull requests, open issues, branches and every repository.
+
+Because the unauthenticated GitHub limit is 60 requests an hour and a refresh costs about thirteen, results are cached server-side for 20 minutes and concurrent viewers share one in-flight refresh. Setting `GITHUB_TOKEN` raises the ceiling to 5000/hour. If the limit is hit anyway the page says so plainly and shows whatever it has rather than failing.
 
 ### Services
 
@@ -133,6 +167,9 @@ cp frontend/.env.example frontend/.env    # optional; only for split-origin depl
 | `HEALTH_CHECK_INTERVAL_MINUTES` | no (5) | Minutes between probe runs. |
 | `SESSION_COOKIE_DOMAIN` | no (host-only) | Set to `.kstacks.org` to share the session across KStack subdomains. Must stay empty in development — a browser rejects such a cookie from `localhost`. |
 | `ALLOWED_EMAIL_DOMAINS` | no (`stu.kau.edu.sa`) | Comma-separated email domains permitted to sign in. |
+| `GITHUB_ORG` | no (`KStacks-org`) | Organisation the activity feed reads. |
+| `GITHUB_TOKEN` | no | Read-only token. Without it GitHub allows 60 requests/hour, which one refresh nearly exhausts; with it, 5000. |
+| `GITHUB_CACHE_MINUTES` | no (20) | How long org activity is held before refetching. |
 
 Generate a session secret:
 
@@ -339,13 +376,16 @@ If the markup changes shape, the script tells you so and points at the selectors
 
 ### Permissions model
 
-Everyone on the team has equal permissions by design — there are no roles.
+Everyone has equal permissions on the work itself. The single exception is roster management, which is admin-only.
 
 - Anyone can create tasks and subtasks, and edit any task.
 - Everyone sees every task.
 - **Only the person who created a task can delete it**, and deletion always requires confirmation. This is enforced on the server, not just hidden in the UI.
 - **Only the author of a comment can edit or delete it** — likewise enforced server-side.
 - A subtask can only be owned by someone already assigned to its parent task.
+- **Only the person who reported an issue can delete it.**
+- **Only an admin can add, edit or deactivate a team member.** The last admin is protected from demotion or deactivation, and nobody can deactivate their own account.
+- A notification can only be read or dismissed by its recipient.
 - Finishing a task **archives** it. Archived tasks move to the Archive page and are never removed automatically; they can be restored at any time.
 
 ---
@@ -368,5 +408,7 @@ Translations live in `frontend/messages/en.json` and `ar.json`. Adding a key to 
 - The theme is **dark only** in this version; the design tokens are structured so a light theme can be added later without touching components.
 - Subtasks are one level deep by design.
 - The board has no "Done" column: finishing a task archives it, so a Done column would always render empty.
+- Notifications cover activity inside the dashboard. GitHub events (a PR needing review, a failing workflow) would need webhooks pointing at a publicly reachable URL and are not wired up.
+- The notification stream is in-process, which suits one API process serving the team. Running several instances behind a load balancer would need a shared broker so a push reaches whichever instance holds the connection.
 - Health probes issue a plain `GET` and treat any non-2xx/3xx response or timeout as down. They do not follow up with a body check, so a service returning `200` while broken internally would still read as up.
 - There is no self-service password reset. To reset an account, have an admin update its hash directly, or delete the row and re-run `pnpm db:seed` to recreate it with the temporary password.
