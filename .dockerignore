@@ -1,0 +1,29 @@
+node_modules
+**/node_modules
+**/dist
+**/build
+.git
+.github
+.env
+.env.*
+!.env.example
+*.local
+*.log
+*.tsbuildinfo
+
+# Test and tooling output
+coverage
+playwright-report
+test-results
+blob-report
+frontend/e2e/.e2e-users.json
+frontend/.tanstack
+
+# Generated at build time inside the image
+frontend/src/paraglide
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db
