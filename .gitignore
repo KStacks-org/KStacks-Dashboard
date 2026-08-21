@@ -27,6 +27,7 @@ coverage/
 playwright-report/
 test-results/
 blob-report/
+frontend/e2e/.e2e-users.json
 
 # Paraglide generated output
 frontend/src/paraglide/
