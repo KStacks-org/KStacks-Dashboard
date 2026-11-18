@@ -296,6 +296,12 @@ pnpm --filter frontend dev
 
 ## Build and production start
 
+Docker and the shared org workflow compile public frontend settings from
+`frontend/.env.dev` and `frontend/.env.prod`. Use `--build-arg BUILD_MODE=dev` or
+`BUILD_MODE=prod` (the default). CI builds both image variants; backend runtime
+settings still come from deployment configuration. This monorepo is not registered
+in the current infra charts, so publishing does not automatically deploy it.
+
 ```bash
 pnpm build     # compiles the API to backend/dist and the frontend to frontend/dist
 pnpm start     # runs the compiled API (node dist/src/server.js)

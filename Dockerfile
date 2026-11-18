@@ -31,19 +31,8 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-# Vite bakes VITE_* into the client bundle at build time, so these are build
-# args rather than runtime env. Both default to empty, which is what a
-# same-origin deployment wants: the frontend calls /api on its own origin,
-# and the login redirect falls back to the production auth-service URL.
-ARG VITE_API_BASE_URL=""
-ARG VITE_AUTH_SERVICE_LOGIN_URL=""
-ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
-    VITE_AUTH_SERVICE_LOGIN_URL=$VITE_AUTH_SERVICE_LOGIN_URL
-
-# Backend: prisma generate -> tsc -> tsc-alias. Frontend: paraglide -> tsc -> vite.
-# Both generate code before compiling, so neither depends on artefacts that
-# only exist on a developer's machine.
-RUN pnpm build
+ARG BUILD_MODE=prod
+RUN pnpm --filter backend build && pnpm --filter frontend build --mode "$BUILD_MODE"
 
 # ---------- Stage 3: production dependencies ----------
 # A separate clean install rather than pruning the builder's tree: `pnpm prune

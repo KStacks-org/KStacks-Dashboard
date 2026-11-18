@@ -34,3 +34,7 @@ frontend/src/paraglide/
 
 # TypeScript incremental build info
 *.tsbuildinfo
+!.env.dev
+!.env.prod
+!frontend/.env.dev
+!frontend/.env.prod
